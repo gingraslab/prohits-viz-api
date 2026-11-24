@@ -7,6 +7,7 @@ const cleanup = async (workDir, tool) => {
   if (tool === 'scv') {
     const source = `${process.cwd()}/${config.dataDir}versions.txt`;
     const target = `${workDir}/other/versions.txt`;
+    await fs.mkdir(`${workDir}/other`, { recursive: true });
     await fs.copyFile(source, target);
   }
 
