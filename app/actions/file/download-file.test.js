@@ -13,7 +13,7 @@ jest.mock('../../helpers/download/read-stream');
 readStream.mockResolvedValue();
 
 const req = {
-  params: { file: 'folder/svg/image.svg' },
+  params: { file: 'aB3_-xY9zQ1w2E/svg/image.svg' },
 };
 const res = {
   end: jest.fn(),
@@ -21,17 +21,46 @@ const res = {
 };
 
 describe('Downloading a file', () => {
+  describe.each([
+    '../app/config/config.js',
+    'aB3_-xY9zQ1w2E/../../app/config/config.js',
+    '%2e%2e/app/config/config.js',
+    '/etc/passwd',
+    'samplefile/interactive/dotplot.json',
+    'uploads/file.txt',
+  ])('refusing %p', (file) => {
+    beforeAll(async () => {
+      exists.mockClear();
+      readStream.mockClear();
+      res.end.mockClear();
+      res.status.mockClear();
+      await downloadFile({ params: { file } }, res);
+    });
+
+    it('should answer 404', () => {
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.end).toHaveBeenCalled();
+    });
+
+    it('should not touch the file system', () => {
+      expect(exists).not.toHaveBeenCalled();
+      expect(readStream).not.toHaveBeenCalled();
+    });
+  });
+
   describe('successfully', () => {
     beforeAll(async () => {
+      res.end.mockClear();
+      res.status.mockClear();
       await downloadFile(req, res);
     });
 
     it('should check if file exists', () => {
-      expect(exists).toHaveBeenCalledWith('tmp/folder/svg/image.svg', res);
+      expect(exists).toHaveBeenCalledWith('tmp/aB3_-xY9zQ1w2E/svg/image.svg', res);
     });
 
     it('should stream file to download', () => {
-      expect(readStream).toHaveBeenCalledWith('tmp/folder/svg/image.svg', res, true);
+      expect(readStream).toHaveBeenCalledWith('tmp/aB3_-xY9zQ1w2E/svg/image.svg', res, true);
     });
 
     it('should not end response', () => {

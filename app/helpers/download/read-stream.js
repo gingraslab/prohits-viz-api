@@ -2,13 +2,21 @@ import fs from 'fs';
 
 import config from '../../config/config.js';
 import extToMimeType from './ext-to-mime-type.js';
+import logger from '../logging/logger.js';
 import removeFile from '../files/remove-file.js';
+import { isTaskID } from './valid-names.js';
 
+// Removes the task folder the file came from. Only a work folder directly
+// inside tmp/ is ever removed, whatever path the caller passes.
 export const removeFileOnCompletion = (file, shouldRemoveFile) => {
-  const workDir = file.replace(config.workDir, '').split('/')[0];
-  const workDirPath = `${config.workDir}${workDir}`;
-  if (shouldRemoveFile) {
-    removeFile(workDirPath);
+  if (!shouldRemoveFile || !file.startsWith(config.workDir)) {
+    return;
+  }
+  const folder = file.slice(config.workDir.length).split('/')[0];
+  if (isTaskID(folder)) {
+    removeFile(`${config.workDir}${folder}`).catch((error) => {
+      logger.error(`remove task folder - ${error.toString()}`);
+    });
   }
 };
 

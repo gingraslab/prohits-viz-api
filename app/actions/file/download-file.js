@@ -2,10 +2,15 @@ import config from '../../config/config.js';
 import exists from '../../helpers/download/exists.js';
 import logger from '../../helpers/logging/logger.js';
 import readStream from '../../helpers/download/read-stream.js';
+import { isTaskFilePath, notFound } from '../../helpers/download/valid-names.js';
 
 const downloadFile = async (req, res) => {
   try {
     const { file } = req.params;
+    if (!isTaskFilePath(file)) {
+      notFound(res);
+      return;
+    }
     const completeFilePath = `${config.workDir}${file}`;
     await exists(completeFilePath, res);
     readStream(completeFilePath, res, true);

@@ -21,8 +21,35 @@ const res = {
 };
 
 describe('Downloading a file', () => {
+  describe.each([
+    '../app/config/config.js',
+    '..',
+    'rna-tissues',
+    '/etc/passwd',
+  ])('refusing %p', (file) => {
+    beforeAll(async () => {
+      exists.mockClear();
+      readStream.mockClear();
+      res.end.mockClear();
+      res.status.mockClear();
+      await downloadDataFile({ params: { file } }, res);
+    });
+
+    it('should answer 404', () => {
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.end).toHaveBeenCalled();
+    });
+
+    it('should not touch the file system', () => {
+      expect(exists).not.toHaveBeenCalled();
+      expect(readStream).not.toHaveBeenCalled();
+    });
+  });
+
   describe('successfully', () => {
     beforeAll(async () => {
+      res.end.mockClear();
+      res.status.mockClear();
       await downloadDataFile(req, res);
     });
 
@@ -31,7 +58,7 @@ describe('Downloading a file', () => {
     });
 
     it('should stream file to download', () => {
-      expect(readStream).toHaveBeenCalledWith('files/rna-tissues.json', res, true);
+      expect(readStream).toHaveBeenCalledWith('files/rna-tissues.json', res);
     });
 
     it('should not end response', () => {

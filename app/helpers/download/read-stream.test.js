@@ -9,14 +9,10 @@ jest.mock('../../config/config.js', () => ({ workDir: 'tmp/' }));
 jest.mock('./ext-to-mime-type');
 extToMimeType.mockReturnValue('svg');
 jest.mock('../files/remove-file.js');
+removeFile.mockResolvedValue();
+jest.mock('../logging/logger.js');
 
-mockFS({
-  tmp: {
-    aaaaaa: {
-      'file.svg': 'file content',
-    },
-  },
-});
+const taskID = 'aB3_-xY9zQ1w2E';
 
 const res = new stream.Writable();
 res._write = (chunk, encoding, done) => {
@@ -26,24 +22,50 @@ res.end = jest.fn();
 res.setHeader = jest.fn();
 res.status = jest.fn();
 
+beforeAll(() => {
+  mockFS({
+    tmp: {
+      [taskID]: {
+        'file.svg': 'file content',
+      },
+    },
+  });
+});
+
 afterAll(() => {
   mockFS.restore();
 });
 
 describe('Remove file', () => {
-  it('should remove file', async () => {
+  it('should remove the task folder', () => {
     removeFile.mockClear();
-    const file = 'tmp/aaaaaaa/svg/file.svg';
-    const shouldRemoveFile = true;
-    await removeFileOnCompletion(file, shouldRemoveFile);
-    expect(removeFile).toHaveBeenCalledWith('tmp/aaaaaaa');
+    removeFileOnCompletion(`tmp/${taskID}/svg/file.svg`, true);
+    expect(removeFile).toHaveBeenCalledWith(`tmp/${taskID}`);
   });
 
-  it('should not remove file', async () => {
+  it('should remove a folder made by the Prohits LIMS', () => {
     removeFile.mockClear();
-    const file = 'tmp/aaaaaaa/svg/file.svg';
-    const shouldRemoveFile = false;
-    await removeFileOnCompletion(file, shouldRemoveFile);
+    removeFileOnCompletion('tmp/GAVAcfHPB5/svg/file.svg', true);
+    expect(removeFile).toHaveBeenCalledWith('tmp/GAVAcfHPB5');
+  });
+
+  it('should not remove file', () => {
+    removeFile.mockClear();
+    removeFileOnCompletion(`tmp/${taskID}/svg/file.svg`, false);
+    expect(removeFile).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'tmp/samplefile/interactive/dotplot.json',
+    'tmp/uploads/file.txt',
+    'tmp/../app/config/config.js',
+    `tmp/../${taskID}/file.svg`,
+    'files/rna-tissues.json',
+    `/tmp/${taskID}/file.svg`,
+    'tmp/',
+  ])('should never remove anything for %p', (file) => {
+    removeFile.mockClear();
+    removeFileOnCompletion(file, true);
     expect(removeFile).not.toHaveBeenCalled();
   });
 });
@@ -55,7 +77,7 @@ describe('Streaming a file to response', () => {
         removeFile.mockClear();
         res.end.mockClear();
         res.setHeader.mockClear();
-        await readStream('tmp/aaaaaa/file.svg', res);
+        await readStream(`tmp/${taskID}/file.svg`, res);
       });
 
       it('should set content-type to mime type', () => {
@@ -76,11 +98,11 @@ describe('Streaming a file to response', () => {
         removeFile.mockClear();
         res.end.mockClear();
         res.setHeader.mockClear();
-        await readStream('tmp/aaaaaa/file.svg', res, true);
+        await readStream(`tmp/${taskID}/file.svg`, res, true);
       });
 
       it('should delete working directory', () => {
-        expect(removeFile).toHaveBeenCalledWith('tmp/aaaaaa');
+        expect(removeFile).toHaveBeenCalledWith(`tmp/${taskID}`);
       });
     });
   });
@@ -92,7 +114,7 @@ describe('Streaming a file to response', () => {
       res.end.mockClear();
       res.setHeader.mockClear();
       try {
-        await readStream('tmp/aaaaaa/missing.svg', res);
+        await readStream(`tmp/${taskID}/missing.svg`, res);
       } catch (err) {
         error = err;
       }
@@ -107,7 +129,7 @@ describe('Streaming a file to response', () => {
     });
 
     it('should return error', () => {
-      expect(error.toString()).toBe('Error: Could not read: tmp/aaaaaa/missing.svg');
+      expect(error.toString()).toBe(`Error: Could not read: tmp/${taskID}/missing.svg`);
     });
   });
 });

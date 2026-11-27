@@ -3,6 +3,12 @@ import exists from '../../../helpers/download/exists.js';
 import getSubDirectory from './get-sub-directory.js';
 import logger from '../../../helpers/logging/logger.js';
 import readStream from '../../../helpers/download/read-stream.js';
+import {
+  isArchiveID,
+  isName,
+  isTaskFolder,
+  notFound,
+} from '../../../helpers/download/valid-names.js';
 
 const downloadTaskFile = async (req, res) => {
   try {
@@ -10,8 +16,16 @@ const downloadTaskFile = async (req, res) => {
 
     let completeFilePath;
     if (folder === 'archive') {
+      if (!isArchiveID(filename)) {
+        notFound(res);
+        return;
+      }
       completeFilePath = `${config.archiveDir}${filename}.json`;
     } else {
+      if (!isTaskFolder(folder) || !isName(filename)) {
+        notFound(res);
+        return;
+      }
       const { file, subDirectory } = getSubDirectory(filename);
       completeFilePath = `${config.workDir}${folder}${subDirectory}/${file}`;
     }
