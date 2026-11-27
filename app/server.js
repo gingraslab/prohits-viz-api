@@ -22,7 +22,7 @@ const initApp = () => {
   app.use(bodyparser.json({ limit: '100mb' }));
   app.use(compression());
   app.use(config.base, router);
-  server.listen(config.port, () => {
+  server.listen(config.port, config.host, () => {
     logger.info(`Server listening on port ${server.address().port}`);
   });
   configureSocket(app, server);
